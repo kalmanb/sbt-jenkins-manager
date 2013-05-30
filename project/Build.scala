@@ -36,7 +36,7 @@ object sbtJenkins extends Build {
     id = projectName,
     base = file("."),
     settings = Seq(
-      organization := "co.movio",
+      organization := "org.kalmanb",
       version := "0.0.1-SNAPSHOT"
     ) ++ Project.defaultSettings ++ publishedScalaSettings)
 
