@@ -1,4 +1,4 @@
-package co.movio.sbt
+package kalmanb.sbt
 
 import sbt._
 import Keys._

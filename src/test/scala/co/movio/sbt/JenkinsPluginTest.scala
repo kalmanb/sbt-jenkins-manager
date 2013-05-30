@@ -2,6 +2,9 @@ package co.movio.sbt
 
 import java.io.File
 
+import kalmanb.sbt.JenkinsPlugin;
+import kalmanb.sbt.JenkinsPlugin.*;
+
 import org.scalatest.FunSpec
 
 import JenkinsPlugin._
