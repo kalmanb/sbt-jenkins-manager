@@ -1,8 +1,8 @@
 import sbt._
 import Keys._
 
-object jenkinsPlugin extends Build {
-  val projectName = "jenkins-plugin"
+object sbtJenkins extends Build {
+  val projectName = "sbt-jenkins"
 
   override lazy val settings = super.settings ++ Seq(resolvers := Seq())
 
