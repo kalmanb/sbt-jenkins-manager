@@ -123,6 +123,11 @@ trait JenkinsPluginTrait extends Plugin {
       updateJobConfig(job, updated)
     }
 
+    def createJob(job: String, config: Seq[scala.xml.Node]) {
+      Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
+        .setBody(config.mkString).setHeader("Content-Type", "text/xml") <<? Map("name" -> job) OK as.String)()
+    }
+
     def copyJob(src: String, dst: String) {
       val params = Map("name" -> dst, "mode" -> "copy", "from" -> src)
       Http(dispatch.url(baseUrl + "/createItem") << params)()
