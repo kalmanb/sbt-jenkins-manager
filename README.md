@@ -1,5 +1,4 @@
-sbt-jenkins-manager
-===================
+# sbt-jenkins-manager
 
 Drive Jenkins from within SBT
 
