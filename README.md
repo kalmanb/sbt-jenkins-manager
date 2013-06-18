@@ -22,9 +22,11 @@ In your `project/plugins.sbt` add the following line:
 
 Add your jenkins url to your project settings:
 
+    import org.kalmanb.sbt.JenkinsPlugin._
+
     lazy val name = Project(
        ...
-       settings = Seq(
+       settings = jenkinsSettings ++ Seq(
          ...
          jenkinsBaseUrl := "http://jenkins.hostname.com/"
       )
