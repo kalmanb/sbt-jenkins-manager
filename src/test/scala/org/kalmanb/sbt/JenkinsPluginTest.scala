@@ -48,6 +48,10 @@ class jenkinsTest extends FunSpec {
       assert(doesJobExist(job2) === false)
     }
 
+    it("should test change view git brach") {
+      fail
+    }
+
     //        def createJob = http://localhost:8080/createItem
   }
   //    it("should be able to get view jobs") {

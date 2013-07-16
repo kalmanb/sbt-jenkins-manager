@@ -17,9 +17,10 @@ trait JenkinsPluginTrait extends Plugin {
 
   // Tasks
   val jenCopyJob = InputKey[Unit]("jenkins-copy-job", "<scr> <dest> create a copy of an existing job")
-  val jenBuildJob = InputKey[Unit]("jenkins-build-job", "<name> start a build for a Job")
-  val jenDeleteJob = InputKey[Unit]("jenkins-delete-job", "<name> delete Job from Jenkins")
-  val jenChangeJobBranch = InputKey[Unit]("jenkins-change-job-branch", "<name> <branch> change a jobs git branch setting")
+  val jenBuildJob = InputKey[Unit]("jenkins-build-job", "<job-name> start a build for a Job")
+  val jenDeleteJob = InputKey[Unit]("jenkins-delete-job", "<job-name> delete Job from Jenkins")
+  val jenChangeJobBranch = InputKey[Unit]("jenkins-change-job-branch", "<job-name> <branch> change a jobs git branch setting")
+  val jenChangeViewBranch = InputKey[Unit]("jenkins-change-view-branch", "<view-name> <branch> change all jobs in the view to a new git branch setting")
 
   val jenCreateView = InputKey[Unit]("jenkins-create-view", "<name> create a new view")
   val jenCopyView = InputKey[Unit]("jenkins-copy-view", "<src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>")
@@ -27,7 +28,9 @@ trait JenkinsPluginTrait extends Plugin {
   val jenDeleteView = InputKey[Unit]("jenkins-delete-view", "<name> deletes the view, does NOT delete the jobs in the view")
   val jenDeleteViewAndJobs = InputKey[Unit]("jenkins-delete-view-and-jobs", "<name> deletes the view and deletes all the jobs in the view")
   val jenBuildAllJobsInView = InputKey[Unit]("jenkins-build-all-jobs-in-view", "<name> queues the build of all jobs")
-
+  val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkins-set-wipeout-workspace-view", "<view> true|false changes the setting for wipeout workspace in the specified view")
+  val jenChangeThrottleCategories = InputKey[Unit]("jenkins-change-view-throttle-cats", "<view> cat1,cat2,cat3 changes the setting for wipeout workspace in the specified view")
+  
   lazy val jenkinsSettings = Seq(
     jenCopyJob <<= inputTask { (argTask) ⇒
       (baseDirectory, jenkinsBaseUrl, argTask) map { (baseDirectory, host, args) ⇒
@@ -47,6 +50,11 @@ trait JenkinsPluginTrait extends Plugin {
     jenChangeJobBranch <<= inputTask { (argTask) ⇒
       (jenkinsBaseUrl, argTask) map { (host, args) ⇒
         validateArgs(args, 2); Jenkins(host).changeJobGitBranch(args.head, args(1))
+      }
+    },
+    jenChangeViewBranch <<= inputTask { (argTask) ⇒
+      (jenkinsBaseUrl, argTask) map { (host, args) ⇒
+        validateArgs(args, 2); Jenkins(host).changeViewGitBranch(args.head, args(1))
       }
     },
     jenCreateView <<= inputTask { (argTask) ⇒
@@ -78,9 +86,19 @@ trait JenkinsPluginTrait extends Plugin {
       (jenkinsBaseUrl, argTask) map { (host, args) ⇒
         validateArgs(args, 1); Jenkins(host).buildAllJobsInView(args.head)
       }
-    }
+    },
+    jenSetWipeoutWorkspaceView <<= inputTask { (argTask) ⇒
+      (jenkinsBaseUrl, argTask) map { (host, args) ⇒
+        validateArgs(args, 2); Jenkins(host).setWipeOutWorkspaceForView(args.head, args(1))
+      }
+    },
+    jenChangeThrottleCategories <<= inputTask { (argTask) =>
+      (jenkinsBaseUrl, argTask) map { (host, args) =>
+        validateArgs(args, 2); Jenkins(host).changeThrottleCategoriesView(args.head, args(1))
+       }
+     }
   )
-  def validateArgs(args: Seq[String], size: Int) {
+  def validateArgs(args: Seq[_], size: Int) {
     if (args.size != size) throw new IllegalArgumentException("expected %s args, got %s".format(size, args.size))
   }
 
@@ -121,6 +139,57 @@ trait JenkinsPluginTrait extends Plugin {
       } transform config
 
       updateJobConfig(job, updated)
+    }
+
+    def setWipeOutWorkspaceForView(view: String, wipeOutWorkspace: String): Unit = {
+      getJobsInView(view).foreach(setWipeOutWorkspaceForJob(_, wipeOutWorkspace.toBoolean))
+    }
+
+    def setWipeOutWorkspaceForJob(job:String, wipeOutWorkspace: Boolean): Unit = {
+      val config = getJobConfig(job)
+      val updated = new RewriteRule {
+        override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
+          case Elem(prefix, "wipeOutWorkspace", attribs, scope, child @ _*) ⇒ <wipeOutWorkspace>{wipeOutWorkspace}</wipeOutWorkspace>
+          case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
+          case other ⇒ other
+        }
+      } transform config
+      updateJobConfig(job, updated)
+      println("Updated "+ job +" with wipeOutWorkspace to " + wipeOutWorkspace)
+    }
+
+    def changeThrottleCategoriesView(view: String, categoryList: String): Unit = {
+      val categories = categoryList.split(",").map(_.trim)
+      getJobsInView(view).foreach(changeThrottleCategoriesJob(_, categories))
+    }
+
+    // TODO - currently only replaces, should insert if not found
+    def changeThrottleCategoriesJob(job: String, categories: Seq[String]): Unit = {
+      val config = getJobConfig(job)
+      val settings = 
+        <wrapper>
+          <maxConcurrentPerNode>0</maxConcurrentPerNode>
+          <maxConcurrentTotal>0</maxConcurrentTotal>
+          <categories>
+          {categories.map(cat => <string>{cat}</string>)}
+          </categories>
+          <throttleEnabled>true</throttleEnabled>
+          <throttleOption>category</throttleOption>
+        </wrapper>
+      val updated = new RewriteRule {
+        override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
+          case Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, child @ _*) ⇒ 
+            Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, settings \ "_":_*)
+          case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
+          case other ⇒ other
+        }
+      } transform config
+      updateJobConfig(job, updated)
+      println("Updated "+ job +" changing categories to " + categories.mkString(","))
+    }
+
+    def changeViewGitBranch(view: String, newBranch: String):Unit = {
+      getJobsInView(view).foreach(changeJobGitBranch(_, newBranch))                                                            
     }
 
     def createJob(job: String, config: Seq[scala.xml.Node]) {
