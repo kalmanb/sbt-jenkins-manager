@@ -90,18 +90,18 @@ trait JenkinsPluginTrait extends Plugin {
     jenSetWipeoutWorkspaceView <<= inputTask { (argTask) ⇒
       (jenkinsBaseUrl, argTask) map { (host, args) ⇒
         val ignoreList = if(args.size > 2) Some(args(2)) else None
-        validateArgs(args, 3); Jenkins(host).setWipeOutWorkspaceForView(args.head, args(1), ignoreList)
+        validateArgs(args, 2); Jenkins(host).setWipeOutWorkspaceForView(args.head, args(1), ignoreList)
       }
     },
     jenChangeThrottleCategories <<= inputTask { (argTask) =>
       (jenkinsBaseUrl, argTask) map { (host, args) => {
         val ignoreList = if(args.size > 2) Some(args(2)) else None
-        validateArgs(args, 3); Jenkins(host).changeThrottleCategoriesView(args.head, args(1), ignoreList)
+        validateArgs(args, 2); Jenkins(host).changeThrottleCategoriesView(args.head, args(1), ignoreList)
       }}
     }
     )
   def validateArgs(args: Seq[_], size: Int) {
-    if (args.size != size) throw new IllegalArgumentException("expected %s args, got %s".format(size, args.size))
+    if (args.size < size) throw new IllegalArgumentException("expected %s args, got %s".format(size, args.size))
   }
 
   case class Jenkins(baseUrl: String) {
@@ -207,13 +207,13 @@ trait JenkinsPluginTrait extends Plugin {
       logServerNotFound(() => {
       val params = Map("name" -> dst, "mode" -> "copy", "from" -> src)
       Http(dispatch.url(baseUrl + "/createItem") << params)()
-  })
+      })
 
-  def buildJob(job: String): Unit =  
-    logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/build".format(job)))(), job)
+    def buildJob(job: String): Unit =  
+      logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/build".format(job)))(), job)
 
-def deleteJob(job: String): Unit =
-  logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/doDelete".format(job)).POST)(), job)
+    def deleteJob(job: String): Unit =
+      logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/doDelete".format(job)).POST)(), job)
 
     def buildAllJobsInView(view: String) {
       getJobsInView(view).foreach(buildJob)
@@ -231,7 +231,7 @@ def deleteJob(job: String): Unit =
       try {
         f()
       } catch {
-        case e if(e.getMessage.contains("404")) => {println(message); throw e }
+        case e if(e.getMessage.contains("404")) => {println(message + "\n"); throw e }
         case e => throw e
       }
     }
