@@ -28,8 +28,8 @@ trait JenkinsPluginTrait extends Plugin {
   val jenDeleteView = InputKey[Unit]("jenkins-delete-view", "<name> deletes the view, does NOT delete the jobs in the view")
   val jenDeleteViewAndJobs = InputKey[Unit]("jenkins-delete-view-and-jobs", "<name> deletes the view and deletes all the jobs in the view")
   val jenBuildAllJobsInView = InputKey[Unit]("jenkins-build-all-jobs-in-view", "<name> queues the build of all jobs")
-  val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkins-set-wipeout-workspace-view", "<view> true|false changes the setting for wipeout workspace in the specified view")
-  val jenChangeThrottleCategories = InputKey[Unit]("jenkins-change-view-throttle-cats", "<view> cat1,cat2,cat3 changes the setting for wipeout workspace in the specified view")
+  val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkins-set-wipeout-workspace-view", "<view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view")
+  val jenChangeThrottleCategories = InputKey[Unit]("jenkins-change-view-throttle-cats", "<view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view")
   
   lazy val jenkinsSettings = Seq(
     jenCopyJob <<= inputTask { (argTask) ⇒
@@ -89,43 +89,45 @@ trait JenkinsPluginTrait extends Plugin {
     },
     jenSetWipeoutWorkspaceView <<= inputTask { (argTask) ⇒
       (jenkinsBaseUrl, argTask) map { (host, args) ⇒
-        validateArgs(args, 2); Jenkins(host).setWipeOutWorkspaceForView(args.head, args(1))
+        val ignoreList = if(args.size > 2) Some(args(2)) else None
+        validateArgs(args, 3); Jenkins(host).setWipeOutWorkspaceForView(args.head, args(1), ignoreList)
       }
     },
     jenChangeThrottleCategories <<= inputTask { (argTask) =>
-      (jenkinsBaseUrl, argTask) map { (host, args) =>
-        validateArgs(args, 2); Jenkins(host).changeThrottleCategoriesView(args.head, args(1))
-       }
-     }
-  )
+      (jenkinsBaseUrl, argTask) map { (host, args) => {
+        val ignoreList = if(args.size > 2) Some(args(2)) else None
+        validateArgs(args, 3); Jenkins(host).changeThrottleCategoriesView(args.head, args(1), ignoreList)
+      }}
+    }
+    )
   def validateArgs(args: Seq[_], size: Int) {
     if (args.size != size) throw new IllegalArgumentException("expected %s args, got %s".format(size, args.size))
   }
 
   case class Jenkins(baseUrl: String) {
 
-    def createView(view: String) {
-      val params = Map("name" -> view, "mode" -> "hudson.model.ListView",
-        "json" -> "{\"name\": \"%s\", \"mode\": \"hudson.model.ListView\"}".format(view))
-      Http(dispatch.url(baseUrl + "/createView") << params)()
-    }
+    def createView(view: String): Unit = 
+      logServerNotFound(() => {
+        val params = Map("name" -> view, "mode" -> "hudson.model.ListView",
+          "json" -> "{\"name\": \"%s\", \"mode\": \"hudson.model.ListView\"}".format(view))
+        Http(dispatch.url(baseUrl + "/createView") << params)()
+      })
 
-    def deleteView(view: String) {
-      Http(dispatch.url(baseUrl + "/view/%s/doDelete".format(view)).POST)()
+    def deleteView(view: String) = {
+      logViewNotFound(() => Http(dispatch.url(baseUrl + "/view/%s/doDelete".format(view)).POST)(), view)
     }
 
     def getViewConfig(view: String) =
-      Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)()
+      logViewNotFound(() => Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)(), view)
 
-    def addJobToView(job: String, view: String) {
-      Http(dispatch.url(baseUrl + "/view/%s/addJobToView".format(view)) << Map("name" -> job) OK as.String)()
-    }
+    def addJobToView(job: String, view: String): Unit =
+      logViewNotFound(() => Http(dispatch.url(baseUrl + "/view/%s/addJobToView".format(view)) << Map("name" -> job) OK as.String)(), view)
 
-    def getJobConfig(job: String) =
-      Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)) OK as.xml.Elem)()
+    def getJobConfig(job: String) = 
+      logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)) OK as.xml.Elem)(), job)
 
-    def updateJobConfig(job: String, config: Seq[scala.xml.Node]) =
-      Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)).POST.setBody(config.mkString) OK as.String)()
+    def updateJobConfig(job: String, config: Seq[scala.xml.Node]) = 
+      logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)).POST.setBody(config.mkString) OK as.String)(), job)
 
     def changeJobGitBranch(job: String, newBranch: String) {
       val config = getJobConfig(job)
@@ -141,8 +143,9 @@ trait JenkinsPluginTrait extends Plugin {
       updateJobConfig(job, updated)
     }
 
-    def setWipeOutWorkspaceForView(view: String, wipeOutWorkspace: String): Unit = {
-      getJobsInView(view).foreach(setWipeOutWorkspaceForJob(_, wipeOutWorkspace.toBoolean))
+    def setWipeOutWorkspaceForView(view: String, wipeOutWorkspace: String, ignoreList: Option[String]): Unit = {
+      val ignoredProjects = ignoreList.getOrElse("").split(",").map(_.trim)
+      getJobsInView(view).diff(ignoredProjects).foreach(setWipeOutWorkspaceForJob(_, wipeOutWorkspace.toBoolean))
     }
 
     def setWipeOutWorkspaceForJob(job:String, wipeOutWorkspace: Boolean): Unit = {
@@ -158,9 +161,10 @@ trait JenkinsPluginTrait extends Plugin {
       println("Updated "+ job +" with wipeOutWorkspace to " + wipeOutWorkspace)
     }
 
-    def changeThrottleCategoriesView(view: String, categoryList: String): Unit = {
+    def changeThrottleCategoriesView(view: String, categoryList: String, ignoreList: Option[String]): Unit = {
+      val ignoredProjects = ignoreList.getOrElse("").split(",").map(_.trim)
       val categories = categoryList.split(",").map(_.trim)
-      getJobsInView(view).foreach(changeThrottleCategoriesJob(_, categories))
+      getJobsInView(view).diff(ignoredProjects).foreach(changeThrottleCategoriesJob(_, categories))
     }
 
     // TODO - currently only replaces, should insert if not found
@@ -172,53 +176,71 @@ trait JenkinsPluginTrait extends Plugin {
           <maxConcurrentTotal>0</maxConcurrentTotal>
           <categories>
           {categories.map(cat => <string>{cat}</string>)}
-          </categories>
-          <throttleEnabled>true</throttleEnabled>
-          <throttleOption>category</throttleOption>
-        </wrapper>
-      val updated = new RewriteRule {
-        override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
-          case Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, child @ _*) ⇒ 
-            Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, settings \ "_":_*)
-          case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
-          case other ⇒ other
-        }
-      } transform config
-      updateJobConfig(job, updated)
-      println("Updated "+ job +" changing categories to " + categories.mkString(","))
+        </categories>
+        <throttleEnabled>true</throttleEnabled>
+        <throttleOption>category</throttleOption>
+      </wrapper>
+    val updated = new RewriteRule {
+      override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
+        case Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, child @ _*) ⇒ 
+        Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, settings \ "_":_*)
+        case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
+        case other ⇒ other
+      }
+    } transform config
+    updateJobConfig(job, updated)
+    println("Updated "+ job +" changing categories to " + categories.mkString(","))
     }
 
     def changeViewGitBranch(view: String, newBranch: String):Unit = {
       getJobsInView(view).foreach(changeJobGitBranch(_, newBranch))                                                            
     }
 
-    def createJob(job: String, config: Seq[scala.xml.Node]) {
-      Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
-        .setBody(config.mkString).setHeader("Content-Type", "text/xml") <<? Map("name" -> job) OK as.String)()
+    def createJob(job: String, config: Seq[scala.xml.Node]): Unit = {
+      logServerNotFound(() => 
+          Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
+            .setBody(config.mkString).setHeader("Content-Type", "text/xml") <<? Map("name" -> job) OK as.String)()
+          )
     }
 
-    def copyJob(src: String, dst: String) {
+    def copyJob(src: String, dst: String): Unit =
+      logServerNotFound(() => {
       val params = Map("name" -> dst, "mode" -> "copy", "from" -> src)
       Http(dispatch.url(baseUrl + "/createItem") << params)()
-    }
+  })
 
-    def buildJob(job: String) {
-      Http(dispatch.url(baseUrl + "/job/%s/build".format(job)))()
-    }
+  def buildJob(job: String): Unit =  
+    logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/build".format(job)))(), job)
 
-    def deleteJob(job: String) {
-      Http(dispatch.url(baseUrl + "/job/%s/doDelete".format(job)).POST)()
-    }
+def deleteJob(job: String): Unit =
+  logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/doDelete".format(job)).POST)(), job)
 
     def buildAllJobsInView(view: String) {
       getJobsInView(view).foreach(buildJob)
     }
 
     def getJobsInView(view: String) = {
-      val config = Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)()
-      val nodes = config \\ "jobNames" \\ "string"
-      nodes.map(_.text)
+      logNotFound(() => {
+        val config = Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)()
+        val nodes = config \\ "jobNames" \\ "string"
+        nodes.map(_.text)
+      }, "Could not find view %s on server %s".format(view, baseUrl))
     }
+
+    def logNotFound[T] (f: () => T, message: => String):T = {
+      try {
+        f()
+      } catch {
+        case e if(e.getMessage.contains("404")) => {println(message); throw e }
+        case e => throw e
+      }
+    }
+
+    def logViewNotFound[T] (f:() => T, view: String):T = logNotFound(f, "Could not find view %s on server %s".format(view, baseUrl))
+
+    def logJobNotFound[T] (f:() => T, job: String):T = logNotFound(f, "Could not find job %s on server %s".format(job, baseUrl))
+
+    def logServerNotFound[T] (f:() => T):T = logNotFound(f, "Could not connect to server %s".format(baseUrl))
 
     def copyView(src: String, dst: String) { copyView(src, dst, dst + "_") }
 
