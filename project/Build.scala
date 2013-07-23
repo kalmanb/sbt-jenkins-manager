@@ -43,4 +43,3 @@ object sbtJenkins extends Build {
     ) ++ Project.defaultSettings ++ publishedScalaSettings)
 
 }
-
