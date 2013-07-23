@@ -30,7 +30,7 @@ trait JenkinsPluginTrait extends Plugin {
   val jenBuildAllJobsInView = InputKey[Unit]("jenkins-build-all-jobs-in-view", "<name> queues the build of all jobs")
   val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkins-set-wipeout-workspace-view", "<view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view")
   val jenChangeThrottleCategories = InputKey[Unit]("jenkins-change-view-throttle-cats", "<view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view")
-  
+
   lazy val jenkinsSettings = Seq(
     jenCopyJob <<= inputTask { (argTask) ⇒
       (baseDirectory, jenkinsBaseUrl, argTask) map { (baseDirectory, host, args) ⇒
@@ -106,7 +106,7 @@ trait JenkinsPluginTrait extends Plugin {
 
   case class Jenkins(baseUrl: String) {
 
-    def createView(view: String): Unit = 
+    def createView(view: String): Unit =
       logServerNotFound(() => {
         val params = Map("name" -> view, "mode" -> "hudson.model.ListView",
           "json" -> "{\"name\": \"%s\", \"mode\": \"hudson.model.ListView\"}".format(view))
@@ -123,10 +123,10 @@ trait JenkinsPluginTrait extends Plugin {
     def addJobToView(job: String, view: String): Unit =
       logViewNotFound(() => Http(dispatch.url(baseUrl + "/view/%s/addJobToView".format(view)) << Map("name" -> job) OK as.String)(), view)
 
-    def getJobConfig(job: String) = 
+    def getJobConfig(job: String) =
       logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)) OK as.xml.Elem)(), job)
 
-    def updateJobConfig(job: String, config: Seq[scala.xml.Node]) = 
+    def updateJobConfig(job: String, config: Seq[scala.xml.Node]) =
       logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)).POST.setBody(config.mkString) OK as.String)(), job)
 
     def changeJobGitBranch(job: String, newBranch: String) {
@@ -170,7 +170,7 @@ trait JenkinsPluginTrait extends Plugin {
     // TODO - currently only replaces, should insert if not found
     def changeThrottleCategoriesJob(job: String, categories: Seq[String]): Unit = {
       val config = getJobConfig(job)
-      val settings = 
+      val settings =
         <wrapper>
           <maxConcurrentPerNode>0</maxConcurrentPerNode>
           <maxConcurrentTotal>0</maxConcurrentTotal>
@@ -182,7 +182,7 @@ trait JenkinsPluginTrait extends Plugin {
       </wrapper>
     val updated = new RewriteRule {
       override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
-        case Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, child @ _*) ⇒ 
+        case Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, child @ _*) ⇒
         Elem(prefix, "hudson.plugins.throttleconcurrents.ThrottleJobProperty", attribs, scope, settings \ "_":_*)
         case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
         case other ⇒ other
@@ -193,11 +193,11 @@ trait JenkinsPluginTrait extends Plugin {
     }
 
     def changeViewGitBranch(view: String, newBranch: String):Unit = {
-      getJobsInView(view).foreach(changeJobGitBranch(_, newBranch))                                                            
+      getJobsInView(view).foreach(changeJobGitBranch(_, newBranch))
     }
 
     def createJob(job: String, config: Seq[scala.xml.Node]): Unit = {
-      logServerNotFound(() => 
+      logServerNotFound(() =>
           Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
             .setBody(config.mkString).setHeader("Content-Type", "text/xml") <<? Map("name" -> job) OK as.String)()
           )
@@ -209,7 +209,7 @@ trait JenkinsPluginTrait extends Plugin {
       Http(dispatch.url(baseUrl + "/createItem") << params)()
       })
 
-    def buildJob(job: String): Unit =  
+    def buildJob(job: String): Unit =
       logJobNotFound(() => Http(dispatch.url(baseUrl + "/job/%s/build".format(job)))(), job)
 
     def deleteJob(job: String): Unit =
