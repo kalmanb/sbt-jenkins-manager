@@ -3,7 +3,7 @@ import Keys._
 
 object sbtJenkins extends Build {
   val projectName = "sbt-jenkins-manager"
-  val buildVersion = "0.2.0"
+  val buildVersion = "0.2.1"
 
   override lazy val settings = super.settings ++ Seq(resolvers := Seq())
 
@@ -20,7 +20,7 @@ object sbtJenkins extends Build {
     publishMavenStyle := false,
     //publishArtifact in (Compile, packageDoc) := false,
     //publishArtifact in (Compile, packageSrc) := false,
-    publishTo := Some(Resolver.url("m", new URL("http://"))(Resolver.ivyStylePatterns)),
+    //publishTo := Some(Resolver.url("m", new URL("http://"))(Resolver.ivyStylePatterns)),
     resolvers ++= Seq(
       Resolver.sonatypeRepo("snapshots")
       //"Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
@@ -43,4 +43,3 @@ object sbtJenkins extends Build {
     ) ++ Project.defaultSettings ++ publishedScalaSettings)
 
 }
-
