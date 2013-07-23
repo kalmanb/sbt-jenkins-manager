@@ -21,6 +21,7 @@ trait JenkinsPluginTrait extends Plugin {
   val jenDeleteJob = InputKey[Unit]("jenkins-delete-job", "<job-name> delete Job from Jenkins")
   val jenChangeJobBranch = InputKey[Unit]("jenkins-change-job-branch", "<job-name> <branch> change a jobs git branch setting")
   val jenChangeViewBranch = InputKey[Unit]("jenkins-change-view-branch", "<view-name> <branch> change all jobs in the view to a new git branch setting")
+  val jenChangeJobsBranch = InputKey[Unit]("jenkins-change-jobs-branch", "<regex> <branch> change all jobs that match a regex to a new git branch setting")
 
   val jenCreateView = InputKey[Unit]("jenkins-create-view", "<name> create a new view")
   val jenCopyView = InputKey[Unit]("jenkins-copy-view", "<src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>")
@@ -55,6 +56,11 @@ trait JenkinsPluginTrait extends Plugin {
     jenChangeViewBranch <<= inputTask { (argTask) ⇒
       (jenkinsBaseUrl, argTask) map { (host, args) ⇒
         validateArgs(args, 2); Jenkins(host).changeViewGitBranch(args.head, args(1))
+      }
+    },
+    jenChangeJobsBranch <<= inputTask { (argTask) ⇒
+      (jenkinsBaseUrl, argTask) map { (host, args) ⇒
+        validateArgs(args, 2); Jenkins(host).changeJobsGitBranch(args.head, args(1))
       }
     },
     jenCreateView <<= inputTask { (argTask) ⇒
@@ -196,6 +202,16 @@ trait JenkinsPluginTrait extends Plugin {
       getJobsInView(view).foreach(changeJobGitBranch(_, newBranch))
     }
 
+    def changeJobsGitBranch(regex: String, newBranch: String): Unit = {
+      val pattern = new scala.util.matching.Regex(regex)
+      getAllJobs().filter(
+        job ⇒ pattern findFirstIn job isDefined
+      ).foreach { job ⇒
+        println("Changing branch to " + newBranch + " for job " + job + ".")
+        changeJobGitBranch(job, newBranch)
+      }
+    }
+
     def createJob(job: String, config: Seq[scala.xml.Node]): Unit = {
       logServerNotFound(() =>
           Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
@@ -217,6 +233,14 @@ trait JenkinsPluginTrait extends Plugin {
 
     def buildAllJobsInView(view: String) {
       getJobsInView(view).foreach(buildJob)
+    }
+
+    def getAllJobs() = {
+      logNotFound(() => {
+        val config = Http(dispatch.url(baseUrl + "/api/xml") OK as.xml.Elem)()
+        val nodes = config \\ "job" \\ "name"
+        nodes.map(_.text)
+      }, "Could not find jobs on server %s".format(baseUrl))
     }
 
     def getJobsInView(view: String) = {
