@@ -111,6 +111,10 @@ class jenkinsTest extends FunSpec {
   //    }
   //
   //  }
+  // it ("should change the branch for all matching jobs") {
+  //   jenkins.changeJobsGitBranch("pattern", "master")
+  // }
+
   def doesViewExist(view: String) =
     try {
       jenkins.getViewConfig(view)
