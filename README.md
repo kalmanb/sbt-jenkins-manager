@@ -38,6 +38,7 @@ Usage:
     jenkins-copy-job <scr> <dest> create a copy of an existing job
     jenkins-build-job <job-name> start a build for a Job
     jenkins-delete-job <job-name> delete Job from Jenkins
+    jenkins-delete-job-regex <job-regex> delete Job from Jenkins
     jenkins-change-job-branch <job-name> <branch> change a jobs git branch setting
     jenkins-change-view-branch <view-name> <branch> change all jobs in the view to a new git branch setting
     jenkins-change-jobs-branch <regex> <branch> change all jobs that match a regex to a new git branch setting
