@@ -3,7 +3,7 @@ import Keys._
 
 object sbtJenkins extends Build {
   val projectName = "sbt-jenkins-manager"
-  val buildVersion = "0.2.2-SNAPSHOT"
+  val buildVersion = "0.3.0"
 
   override lazy val settings = super.settings ++ Seq(resolvers := Seq())
 

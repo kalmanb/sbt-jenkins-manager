@@ -18,7 +18,7 @@ You may need:
 Include in a project:
 In your `project/plugins.sbt` add the following line:
 
-    addSbtPlugin("org.kalmanb" % "sbt-jenkins-manager" % "0.2.3-SNAPSHOT")
+    addSbtPlugin("org.kalmanb" % "sbt-jenkins-manager" % "0.3.0")
 
 Add your jenkins url to your project settings:
 
