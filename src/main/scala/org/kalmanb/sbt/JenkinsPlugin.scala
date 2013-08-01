@@ -221,8 +221,8 @@ trait JenkinsPluginTrait extends Plugin {
 
     def copyJob(src: String, dst: String): Unit =
       logServerNotFound(() => {
-      val params = Map("name" -> dst, "mode" -> "copy", "from" -> src)
-      Http(dispatch.url(baseUrl + "/createItem") << params)()
+        val params = Map("name" -> dst, "mode" -> "copy", "from" -> src)
+        Http(dispatch.url(baseUrl + "/createItem") << params)()
       })
 
     def buildJob(job: String): Unit =
@@ -256,7 +256,7 @@ trait JenkinsPluginTrait extends Plugin {
         f()
       } catch {
         case e if(e.getMessage.contains("404")) => {println(message + "\n"); throw e }
-        case e => throw e
+          case e => throw e
       }
     }
 
