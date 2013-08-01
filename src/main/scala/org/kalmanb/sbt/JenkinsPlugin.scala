@@ -185,6 +185,7 @@ trait JenkinsPluginTrait extends Plugin {
         </categories>
         <throttleEnabled>true</throttleEnabled>
         <throttleOption>category</throttleOption>
+        <configVersion>1</configVersion>
       </wrapper>
     val updated = new RewriteRule {
       override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
