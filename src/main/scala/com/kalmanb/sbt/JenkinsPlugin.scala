@@ -1,4 +1,4 @@
-package org.kalmanb.sbt
+package com.kalmanb.sbt
 
 import sbt._
 import sbt.complete.Parser
