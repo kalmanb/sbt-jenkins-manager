@@ -16,22 +16,22 @@ trait JenkinsPluginTrait extends Plugin {
   val jenkinsBaseUrl = SettingKey[String]("jenkinsBaseUrl", "The base URL for your Jenkins Server, eg http://jenkins.foo.com")
 
     // Tasks
-    val jenCopyJob = InputKey[Unit]("jenkins-copy-job", "<scr> <dest> create a copy of an existing job")
-    val jenBuildJob = InputKey[Unit]("jenkins-build-job", "<job-name> start a build for a Job")
-    val jenDeleteJob = InputKey[Unit]("jenkins-delete-job", "<job-name> delete Job from Jenkins")
-    val jenDeleteJobRegex = InputKey[Unit]("jenkins-delete-job-regex", "<job-regex> delete Job from Jenkins")
-    val jenChangeJobBranch = InputKey[Unit]("jenkins-change-job-branch", "<job-name> <branch> change a jobs git branch setting")
-    val jenChangeViewBranch = InputKey[Unit]("jenkins-change-view-branch", "<view-name> <branch> change all jobs in the view to a new git branch setting")
-    val jenChangeJobsBranch = InputKey[Unit]("jenkins-change-jobs-branch", "<regex> <branch> change all jobs that match a regex to a new git branch setting")
+    val jenCopyJob = InputKey[Unit]("jenkinsCopyJob", "<scr> <dest> create a copy of an existing job")
+    val jenBuildJob = InputKey[Unit]("jenkinsBuildJob", "<jobName> start a build for a Job")
+    val jenDeleteJob = InputKey[Unit]("jenkinsDeleteJob", "<jobName> delete Job from Jenkins")
+    val jenDeleteJobRegex = InputKey[Unit]("jenkinsDeleteJobRegex", "<jobRegex> delete Job from Jenkins")
+    val jenChangeJobBranch = InputKey[Unit]("jenkinsChangeJobBranch", "<jobName> <branch> change a jobs git branch setting")
+    val jenChangeViewBranch = InputKey[Unit]("jenkinsChangeViewBranch", "<viewName> <branch> change all jobs in the view to a new git branch setting")
+    val jenChangeJobsBranch = InputKey[Unit]("jenkinsChangeJobsBranch", "<regex> <branch> change all jobs that match a regex to a new git branch setting")
 
-    val jenCreateView = InputKey[Unit]("jenkins-create-view", "<name> create a new view")
-    val jenCopyView = InputKey[Unit]("jenkins-copy-view", "<src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>")
-    val jenAddJobToView = InputKey[Unit]("jenkins-add-job-to-view", "<job-name> <view-name> create a new view")
-    val jenDeleteView = InputKey[Unit]("jenkins-delete-view", "<name> deletes the view, does NOT delete the jobs in the view")
-    val jenDeleteViewAndJobs = InputKey[Unit]("jenkins-delete-view-and-jobs", "<name> deletes the view and deletes all the jobs in the view")
-    val jenBuildAllJobsInView = InputKey[Unit]("jenkins-build-all-jobs-in-view", "<name> queues the build of all jobs")
-    val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkins-set-wipeout-workspace-view", "<view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view")
-    val jenChangeThrottleCategories = InputKey[Unit]("jenkins-change-view-throttle-cats", "<view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view")
+    val jenCreateView = InputKey[Unit]("jenkinsCreateView", "<name> create a new view")
+    val jenCopyView = InputKey[Unit]("jenkinsCopyView", "<src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>")
+    val jenAddJobToView = InputKey[Unit]("jenkinsAddJobToView", "<jobName> <viewName> create a new view")
+    val jenDeleteView = InputKey[Unit]("jenkinsDeleteView", "<name> deletes the view, does NOT delete the jobs in the view")
+    val jenDeleteViewAndJobs = InputKey[Unit]("jenkinsDeleteViewAndJobs", "<name> deletes the view and deletes all the jobs in the view")
+    val jenBuildAllJobsInView = InputKey[Unit]("jenkinsBuildAllJobsInView", "<name> queues the build of all jobs")
+    val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkinsSetWipeoutWorkspaceView", "<view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view")
+    val jenChangeThrottleCategories = InputKey[Unit]("jenkinsChangeViewThrottleCats", "<view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view")
 
     lazy val jenkinsSettings = Seq(
       jenCopyJob <<= inputTask { (argTask) ⇒
