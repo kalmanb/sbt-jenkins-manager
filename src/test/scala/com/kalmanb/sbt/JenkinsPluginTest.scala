@@ -5,7 +5,7 @@ import java.io.File
 import org.scalatest.FunSpec
 import sbt.Project
 
-class jenkinsTest extends FunSpec {
+class JenkinsTest extends FunSpec {
 
   // You'll need a running version of Jenkins for these tests
   // It will need the Git Plugin installed

@@ -17,9 +17,6 @@ object ThrottleCategoriesPlugin extends Plugin {
 
   lazy val jenkinsSettings = Seq(
     jenChangeThrottleCategories <<= jenkinsTask(2, (baseUrl, args) ⇒
-      Jenkins(baseUrl).updateJob(args.head, changeThrottleCategoriesJob(args))
-    ),
-    jenChangeThrottleCategories <<= jenkinsTask(2, (baseUrl, args) ⇒
       changeThrottleCategoriesView(baseUrl, args)
     )
   )
