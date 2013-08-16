@@ -3,7 +3,6 @@ package com.kalmanb.sbt
 import java.io.File
 
 import org.scalatest.FunSpec
-
 import sbt.Project
 
 class jenkinsTest extends FunSpec {
