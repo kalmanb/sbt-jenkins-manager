@@ -11,6 +11,7 @@ import sbt.complete.Parser
 
 object JenkinsPlugin extends JenkinsPluginTrait
 trait JenkinsPluginTrait extends Plugin {
+  import Jenkins._
 
   // Settings for Build.scala
   val jenkinsBaseUrl = SettingKey[String]("jenkinsBaseUrl", "The base URL for your Jenkins Server, eg http://jenkins.foo.com")
@@ -57,7 +58,7 @@ trait JenkinsPluginTrait extends Plugin {
     jenDeleteJobRegex <<= jenkinsTask(1, (baseUrl, args) ⇒
       Jenkins(baseUrl).deleteJobRegex(args.head)),
     jenChangeJobBranch <<= jenkinsTask(2, (baseUrl, args) ⇒
-      Jenkins(baseUrl).changeJobGitBranch(args.head, args(1))),
+      Jenkins(baseUrl).updateJob(args.head, changeJobGitBranch(args(1)))),
     jenChangeViewBranch <<= jenkinsTask(2, (baseUrl, args) ⇒
       Jenkins(baseUrl).changeViewGitBranch(args.head, args(1))),
     jenChangeJobsBranch <<= jenkinsTask(2, (baseUrl, args) ⇒
@@ -92,6 +93,19 @@ trait JenkinsPluginTrait extends Plugin {
     }
   }
 
+  object Jenkins {
+    def changeJobGitBranch(newBranch: String)(config: Seq[scala.xml.Node]): Seq[scala.xml.Node] = {
+      val updated = new RewriteRule {
+        override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
+          case Elem(prefix, "hudson.plugins.git.BranchSpec", attribs, scope, child @ _*) ⇒ Elem(prefix, "hudson.plugins.git.BranchSpec", attribs, scope, <name>{ newBranch }</name>: _*)
+          case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
+          case other ⇒ other
+        }
+      } transform config
+      updated
+    }
+  }
+
   case class Jenkins(baseUrl: String) {
 
     def createView(view: String): Unit =
@@ -123,19 +137,6 @@ trait JenkinsPluginTrait extends Plugin {
       println("Updated " + job)
     }
 
-    def changeJobGitBranch(job: String, newBranch: String) {
-      val config = getJobConfig(job)
-
-      val updated = new RewriteRule {
-        override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
-          case Elem(prefix, "hudson.plugins.git.BranchSpec", attribs, scope, child @ _*) ⇒ Elem(prefix, "hudson.plugins.git.BranchSpec", attribs, scope, <name>{ newBranch }</name>: _*)
-          case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
-          case other ⇒ other
-        }
-      } transform config
-
-      updateJobConfig(job, updated)
-    }
 
     def setWipeOutWorkspaceForView(args: Seq[String]): Unit = {
       val view = args.head
@@ -159,7 +160,7 @@ trait JenkinsPluginTrait extends Plugin {
     }
 
     def changeViewGitBranch(view: String, newBranch: String): Unit = {
-      getJobsInView(view).foreach(changeJobGitBranch(_, newBranch))
+      getJobsInView(view).foreach(updateJob(_, changeJobGitBranch(newBranch)))
     }
 
     def changeJobsGitBranch(regex: String, newBranch: String): Unit = {
@@ -167,7 +168,7 @@ trait JenkinsPluginTrait extends Plugin {
       getAllJobs().filter(
         job ⇒ pattern findFirstIn job isDefined).foreach { job ⇒
           println("Changing branch to " + newBranch + " for job " + job + ".")
-          changeJobGitBranch(job, newBranch)
+          updateJob(job, changeJobGitBranch(newBranch))
         }
     }
 
