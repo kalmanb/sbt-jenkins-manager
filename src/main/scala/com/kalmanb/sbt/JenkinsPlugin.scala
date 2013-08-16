@@ -137,7 +137,6 @@ trait JenkinsPluginTrait extends Plugin {
       println("Updated " + job)
     }
 
-
     def setWipeOutWorkspaceForView(args: Seq[String]): Unit = {
       val view = args.head
       val wipeOutWorkspace = args(1).toBoolean
