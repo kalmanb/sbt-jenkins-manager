@@ -11,7 +11,6 @@ import sbt.complete.Parser
 
 object JenkinsPlugin extends JenkinsPluginTrait
 trait JenkinsPluginTrait extends Plugin {
-  import Jenkins._
 
   // Settings for Build.scala
   val jenkinsBaseUrl = SettingKey[String]("jenkinsBaseUrl", "The base URL for your Jenkins Server, eg http://jenkins.foo.com")
@@ -25,12 +24,6 @@ trait JenkinsPluginTrait extends Plugin {
     "<jobName> delete Job from Jenkins")
   val jenDeleteJobRegex = InputKey[Unit]("jenkinsDeleteJobRegex",
     "<jobRegex> delete Job from Jenkins")
-  val jenChangeJobBranch = InputKey[Unit]("jenkinsChangeJobBranch",
-    "<jobName> <branch> change a jobs git branch setting")
-  val jenChangeViewBranch = InputKey[Unit]("jenkinsChangeViewBranch",
-    "<viewName> <branch> change all jobs in the view to a new git branch setting")
-  val jenChangeJobsBranch = InputKey[Unit]("jenkinsChangeJobsBranch",
-    "<regex> <branch> change all jobs that match a regex to a new git branch setting")
   val jenCreateView = InputKey[Unit]("jenkinsCreateView",
     "<name> create a new view")
   val jenCopyView = InputKey[Unit]("jenkinsCopyView",
@@ -45,8 +38,6 @@ trait JenkinsPluginTrait extends Plugin {
     "<name> queues the build of all jobs")
   val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkinsSetWipeoutWorkspaceView",
     "<view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view")
-  val jenChangeThrottleCategories = InputKey[Unit]("jenkinsChangeViewThrottleCats",
-    "<view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view")
 
   lazy val jenkinsSettings = Seq(
     jenCopyJob <<= jenkinsTask(2, (baseUrl, args) ⇒
@@ -57,12 +48,6 @@ trait JenkinsPluginTrait extends Plugin {
       Jenkins(baseUrl).deleteJob(args.head)),
     jenDeleteJobRegex <<= jenkinsTask(1, (baseUrl, args) ⇒
       Jenkins(baseUrl).deleteJobRegex(args.head)),
-    jenChangeJobBranch <<= jenkinsTask(2, (baseUrl, args) ⇒
-      Jenkins(baseUrl).updateJob(args.head, changeJobGitBranch(args(1)))),
-    jenChangeViewBranch <<= jenkinsTask(2, (baseUrl, args) ⇒
-      Jenkins(baseUrl).changeViewGitBranch(args.head, args(1))),
-    jenChangeJobsBranch <<= jenkinsTask(2, (baseUrl, args) ⇒
-      Jenkins(baseUrl).changeJobsGitBranch(args.head, args(1))),
     jenCreateView <<= jenkinsTask(1, (baseUrl, args) ⇒
       Jenkins(baseUrl).createView(args.head)),
     jenCopyView <<= jenkinsTask(2, (baseUrl, args) ⇒
@@ -90,19 +75,6 @@ trait JenkinsPluginTrait extends Plugin {
           f(baseUrl, args)
         }
       }
-    }
-  }
-
-  object Jenkins {
-    def changeJobGitBranch(newBranch: String)(config: Seq[scala.xml.Node]): Seq[scala.xml.Node] = {
-      val updated = new RewriteRule {
-        override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
-          case Elem(prefix, "hudson.plugins.git.BranchSpec", attribs, scope, child @ _*) ⇒ Elem(prefix, "hudson.plugins.git.BranchSpec", attribs, scope, <name>{ newBranch }</name>: _*)
-          case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
-          case other ⇒ other
-        }
-      } transform config
-      updated
     }
   }
 
@@ -156,19 +128,6 @@ trait JenkinsPluginTrait extends Plugin {
       } transform config
       updateJobConfig(job, updated)
       println("Updated " + job + " with wipeOutWorkspace to " + wipeOutWorkspace)
-    }
-
-    def changeViewGitBranch(view: String, newBranch: String): Unit = {
-      getJobsInView(view).foreach(updateJob(_, changeJobGitBranch(newBranch)))
-    }
-
-    def changeJobsGitBranch(regex: String, newBranch: String): Unit = {
-      val pattern = new scala.util.matching.Regex(regex)
-      getAllJobs().filter(
-        job ⇒ pattern findFirstIn job isDefined).foreach { job ⇒
-          println("Changing branch to " + newBranch + " for job " + job + ".")
-          updateJob(job, changeJobGitBranch(newBranch))
-        }
     }
 
     def createJob(job: String, config: Seq[scala.xml.Node]): Unit = {

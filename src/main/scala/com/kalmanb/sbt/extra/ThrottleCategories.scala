@@ -15,7 +15,7 @@ object ThrottleCategoriesPlugin extends Plugin {
   val jenChangeThrottleCategories = InputKey[Unit]("jenkinsChangeViewThrottleCats",
     "<view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view")
 
-  lazy val jenkinsSettings = Seq(
+  lazy val throttleCategoriesSettings = Seq(
     jenChangeThrottleCategories <<= jenkinsTask(2, (baseUrl, args) ⇒
       changeThrottleCategoriesView(baseUrl, args)
     )
