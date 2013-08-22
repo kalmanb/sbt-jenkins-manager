@@ -50,7 +50,7 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
             Right(jobUrl)
           case "aborted" ⇒
             Left("ERROR: Job %s ABORTED - stopping".format(jobUrl))
-          case "failed" ⇒
+          case "FAILED" ⇒
             Left("ERROR: Job %s FAILED - stopping".format(jobUrl))
           case _ ⇒
             print(".")
@@ -63,16 +63,16 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
     wait
   }
 
-  def buildJobsInSequence(jobs: Seq[String]): Either[String, String] = {
+  def buildJobAndWait(job: String): Either[String, String] = {
+    val build = buildJob(job)
+    val queued = build.getHeaders("Location")(0)
+    for {
+      jobUrl ← waitForJobToProcess(queued).right
+      result ← waitForJobToComplete(jobUrl).right
+    } yield result
+  }
 
-    def completeJob(job: String): Either[String, String] = {
-      val build = buildJob(job)
-      val queued = build.getHeaders("Location")(0)
-      for {
-        jobUrl ← waitForJobToProcess(queued).right
-        result ← waitForJobToComplete(jobUrl).right
-      } yield result
-    }
+  def buildJobsInSequence(jobs: Seq[String]): Either[String, String] = {
 
     @tailrec
     def work(remaining: Seq[String]): Either[String, String] = {
@@ -80,9 +80,9 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
         println("All Jobs Complete")
         Right("")
       } else {
-        val jobResult = completeJob(remaining.head)
+        val jobResult = buildJobAndWait(remaining.head)
         jobResult match {
-          case Left(e)  ⇒
+          case Left(e) ⇒
             println("ERROR: did not complete " + e)
             Left("")
           case Right(j) ⇒ work(remaining.tail)
