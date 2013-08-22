@@ -8,95 +8,85 @@ object SmartBuilder {
 }
 class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
 
-  case class Build(number: Int, url: String)
-
-  def getNextBuildNumber(job: String) =
-    (getJobInfo(job) \ "nextBuildNumber").text.toInt
-
-  def getLastBuild(job: String): Option[Build] = {
-    val build = (getJobInfo(job) \ "build")
-    if (build nonEmpty)
-      Some(Build((build.head \ "number").text.toInt, (build.head \ "url").text))
-    else None
-  }
-
-  def getJobStatus(job: String, buildNumber: Int): String = {
-    val xml = Http(url(baseUrl + "/job/%s/%d/api/xml".format(job, buildNumber)) OK as.xml.Elem)()
-    (xml \ "result").text
-  }
-
-  def waitForJobToAppear(job: String, nextBuildNumber: Int): Either[String, Build] = {
-    // Usually takes about 10 seconds
-    val NewJobWaitSeconds = 30
+  def waitForJobToProcess(queueUrl: String): Either[String, String] = {
+    val NewJobWaitMinutes = 30
     val startTime = System.currentTimeMillis
 
     @tailrec
-    def wait: Either[String, Build] = {
-      if (System.currentTimeMillis > startTime + (NewJobWaitSeconds * 1000))
-        Left("Timed out waiting for job to be created")
+    def wait: Either[String, String] = {
+      if (System.currentTimeMillis > startTime + (NewJobWaitMinutes * 60 * 1000))
+        Left("Timed out waiting for job to be processed")
       else {
         print(".")
-        Thread sleep 500
-        val build = getLastBuild(job)
-        build match {
-          case Some(b) ⇒
-            if (b.number == nextBuildNumber)
-              Right(b)
-            else
-              wait
-          case None ⇒ wait
-        }
+        Thread sleep 5 * 1000
+        val build = Http(url(queueUrl + "/api/xml") OK as.xml.Elem)()
+        val executable = build \ "executable"
+        if (executable.nonEmpty)
+          Right((executable \ "url").text)
+        else
+          wait
       }
     }
     wait
   }
 
-  def waitForJobToComplete(job: String, buildNumber: Int): Either[String, String] = {
+  def waitForJobToComplete(jobUrl: String): Either[String, String] = {
     val JobCompletionTimeout = 30 * 60 * 1000 // 30 mins
     val startTime = System.currentTimeMillis
 
     @tailrec
     def wait: Either[String, String] = {
       if (System.currentTimeMillis > startTime + (JobCompletionTimeout * 1000))
-        Left("Timed out waiting for Job %s, build: %d to complete".format(job, buildNumber))
+        Left("Timed out waiting for Job %s to complete".format(jobUrl))
       else {
-        print(".")
-        Thread sleep 2 * 1000
-        val build = getJobStatus(job, buildNumber)
-        if (build equalsIgnoreCase "success") {
-          println("\nJob: %s, build: %d completed".format(job, buildNumber))
-          Right(job)
-        } else if (build equalsIgnoreCase "failure")
-          Left("ERROR: Job %s , build: %d FAILED - stopping".format(job, buildNumber))
-        else
-          wait
+        val xml = Http(url(jobUrl + "/api/xml") OK as.xml.Elem)()
+        val buildResult = (xml \ "result").text
+
+        buildResult.toLowerCase match {
+          case "success" ⇒
+            println("\nJob: %s, completed".format(jobUrl))
+            Right(jobUrl)
+          case "aborted" ⇒
+            Left("ERROR: Job %s ABORTED - stopping".format(jobUrl))
+          case "failed" ⇒
+            Left("ERROR: Job %s FAILED - stopping".format(jobUrl))
+          case _ ⇒
+            print(".")
+            Thread sleep 5 * 1000
+            wait
+        }
       }
     }
-    println("\nWaiting for Job: %s, build: %d to complete".format(job, buildNumber))
+    println("\nWaiting for Job: %s to complete".format(jobUrl))
     wait
   }
 
-  def buildJobsInSequence(jobs: Seq[String]): Unit = {
+  def buildJobsInSequence(jobs: Seq[String]): Either[String, String] = {
 
     def completeJob(job: String): Either[String, String] = {
-      val next = getNextBuildNumber(job)
+      //val next = getNextBuildNumber(job)
       val build = buildJob(job)
-      println("Building Job: %s, build: %d".format(job, next))
+      println("Building Job: %s".format(job))
+
+      import scala.collection.JavaConversions._
+      val queued = build.getHeaders("Location")(0)
 
       for {
-        _ ← waitForJobToAppear(job, next).right
-        result ← waitForJobToComplete(job, next).right
+        jobUrl ← waitForJobToProcess(queued).right
+        result ← waitForJobToComplete(jobUrl).right
       } yield result
     }
 
     @tailrec
-    def work(remaining: Seq[String]): Unit = {
-      if (remaining.isEmpty)
+    def work(remaining: Seq[String]): Either[String, String] = {
+      if (remaining.isEmpty) {
         println("All Jobs Complete")
-      else {
+        Right("")
+      } else {
         val jobResult = completeJob(remaining.head)
         jobResult match {
-          case Left(e)  ⇒ println("ERROR: did not complete " + e)
+          case Left(e)  ⇒
+            println("ERROR: did not complete " + e); Left("")
           case Right(j) ⇒ work(remaining.tail)
         }
       }

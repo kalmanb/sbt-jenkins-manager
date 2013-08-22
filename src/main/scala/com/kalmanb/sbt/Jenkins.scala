@@ -83,7 +83,7 @@ class Jenkins(baseUrl: String) {
     logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/enable".format(job)).POST)(), job)
   }
 
-  def buildJob(job: String): Unit = {
+  def buildJob(job: String) = {
     println("Building Job " + job)
     logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/build".format(job)).POST)(), job)
   }
