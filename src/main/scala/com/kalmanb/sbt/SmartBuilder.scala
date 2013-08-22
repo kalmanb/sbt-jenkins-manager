@@ -1,7 +1,9 @@
 package com.kalmanb.sbt
 
-import dispatch._
 import scala.annotation.tailrec
+import scala.collection.JavaConversions._
+
+import dispatch._
 
 object SmartBuilder {
   def apply(baseUrl: String) = new SmartBuilder(baseUrl)
@@ -64,13 +66,8 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
   def buildJobsInSequence(jobs: Seq[String]): Either[String, String] = {
 
     def completeJob(job: String): Either[String, String] = {
-      //val next = getNextBuildNumber(job)
       val build = buildJob(job)
-      println("Building Job: %s".format(job))
-
-      import scala.collection.JavaConversions._
       val queued = build.getHeaders("Location")(0)
-
       for {
         jobUrl ← waitForJobToProcess(queued).right
         result ← waitForJobToComplete(jobUrl).right
@@ -86,13 +83,13 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
         val jobResult = completeJob(remaining.head)
         jobResult match {
           case Left(e)  ⇒
-            println("ERROR: did not complete " + e); Left("")
+            println("ERROR: did not complete " + e)
+            Left("")
           case Right(j) ⇒ work(remaining.tail)
         }
       }
     }
     work(jobs)
   }
-
 }
 
