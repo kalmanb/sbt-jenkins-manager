@@ -2,7 +2,7 @@ package com.kalmanb.sbt
 
 object Common {
   // To run tests against the a server you'll need one running
-  val TestServer = JenkinsPlugin.Jenkins("http://localhost:8080/")
+  val TestServer = Jenkins("http://localhost:8080/")
   val gitProject =
     <project>
       <actions/>

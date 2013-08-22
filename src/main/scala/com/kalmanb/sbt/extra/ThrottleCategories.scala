@@ -4,7 +4,7 @@ import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.transform.RewriteRule
 
-import com.kalmanb.sbt.JenkinsPlugin.Jenkins
+import com.kalmanb.sbt.Jenkins
 import sbt.Keys._
 import sbt._
 
