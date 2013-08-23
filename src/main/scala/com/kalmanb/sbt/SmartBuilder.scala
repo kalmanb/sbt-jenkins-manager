@@ -50,7 +50,7 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
             Right(jobUrl)
           case "aborted" ⇒
             Left("ERROR: Job %s ABORTED - stopping".format(jobUrl))
-          case "FAILED" ⇒
+          case "failure" ⇒
             Left("ERROR: Job %s FAILED - stopping".format(jobUrl))
           case _ ⇒
             print(".")
