@@ -2,7 +2,7 @@ organization := "com.kalmanb"
             
 name := "sbt-jenkins-manager"
 
-version := "0.4.0"
+version := "0.5.0-SNAPSHOT"
 
 sbtPlugin := true
 
@@ -10,7 +10,7 @@ publishMavenStyle := false
 
 publishArtifact in Test := false
 
-publishTo := Some(Resolver.url("movio", new URL("http://dev.movio.co:8081/artifactory/sbt-plugins-release-local"))(Resolver.ivyStylePatterns))
+publishTo := Some(Resolver.url("repo", new URL("http://"))(Resolver.ivyStylePatterns))
 
 // sbt 13
 //sbtVersion in Global := "0.13.0-RC5"
