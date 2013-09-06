@@ -4,6 +4,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
 import dispatch._
+import dispatch.Defaults._
 
 object SmartBuilder {
   def apply(baseUrl: String) = new SmartBuilder(baseUrl)
@@ -21,7 +22,8 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
       else {
         print(".")
         Thread sleep 5 * 1000
-        val build = Http(url(queueUrl + "/api/xml") OK as.xml.Elem)()
+        val request = Http(url(queueUrl + "/api/xml") OK as.xml.Elem)
+        val build = request()
         val executable = build \ "executable"
         if (executable.nonEmpty)
           Right((executable \ "url").text)
@@ -41,7 +43,8 @@ class SmartBuilder(baseUrl: String) extends Jenkins(baseUrl) {
       if (System.currentTimeMillis > startTime + (JobCompletionTimeout * 1000))
         Left("Timed out waiting for Job %s to complete".format(jobUrl))
       else {
-        val xml = Http(url(jobUrl + "/api/xml") OK as.xml.Elem)()
+        val request = Http(url(jobUrl + "/api/xml") OK as.xml.Elem)
+        val xml = request()
         val buildResult = (xml \ "result").text
 
         buildResult.toLowerCase match {

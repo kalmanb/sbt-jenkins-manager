@@ -1,6 +1,7 @@
 package com.kalmanb.sbt
 
 import dispatch._
+import dispatch.Defaults._
 import scala.xml.Elem
 import scala.xml.transform.RewriteRule
 
@@ -13,24 +14,34 @@ class Jenkins(baseUrl: String) {
     logServerNotFound(() ⇒ {
       val params = Map("name" -> view, "mode" -> "hudson.model.ListView",
         "json" -> "{\"name\": \"%s\", \"mode\": \"hudson.model.ListView\"}".format(view))
-      Http(dispatch.url(baseUrl + "/createView") << params)()
+      val request = Http(dispatch.url(baseUrl + "/createView") << params)
+      request()
     })
 
   def deleteView(view: String) = {
-    logViewNotFound(() ⇒ Http(dispatch.url(baseUrl + "/view/%s/doDelete".format(view)).POST)(), view)
+    val request = Http(dispatch.url(baseUrl + "/view/%s/doDelete".format(view)).POST)
+    logViewNotFound(() ⇒ request(), view)
   }
 
-  def getViewConfig(view: String) =
-    logViewNotFound(() ⇒ Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)(), view)
+  def getViewConfig(view: String) = {
+    val request = Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)
+    logViewNotFound(() ⇒ request(), view)
+  }
 
-  def addJobToView(job: String, view: String): Unit =
-    logViewNotFound(() ⇒ Http(dispatch.url(baseUrl + "/view/%s/addJobToView".format(view)) << Map("name" -> job) OK as.String)(), view)
+  def addJobToView(job: String, view: String): Unit = {
+    val request = Http(dispatch.url(baseUrl + "/view/%s/addJobToView".format(view)) << Map("name" -> job) OK as.String)
+    logViewNotFound(() ⇒ request(), view)
+  }
 
-  def getJobConfig(job: String) =
-    logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)) OK as.xml.Elem)(), job)
+  def getJobConfig(job: String) = {
+    val request = Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)) OK as.xml.Elem)
+    logJobNotFound(() ⇒ request(), job)
+  }
 
-  def updateJobConfig(job: String, config: Seq[scala.xml.Node]) =
-    logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)).POST.setBody(config.mkString) OK as.String)(), job)
+  def updateJobConfig(job: String, config: Seq[scala.xml.Node]) = {
+    val request = Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)).POST.setBody(config.mkString) OK as.String)
+    logJobNotFound(() ⇒ request(), job)
+  }
 
   def updateJob(job: String, f: (Seq[scala.xml.Node]) ⇒ Seq[scala.xml.Node]): Unit = {
     val config = Jenkins(baseUrl).getJobConfig(job)
@@ -60,15 +71,16 @@ class Jenkins(baseUrl: String) {
   }
 
   def createJob(job: String, config: Seq[scala.xml.Node]): Unit = {
-    logServerNotFound(() ⇒
-      Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
-        .setBody(config.mkString).setHeader("Content-Type", "text/xml") <<? Map("name" -> job) OK as.String)())
+    val request = Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
+      .setBody(config.mkString).setHeader("Content-Type", "text/xml") <<? Map("name" -> job) OK as.String)
+    logServerNotFound(() ⇒ request())
   }
 
   def copyJob(src: String, dst: String): Unit =
     logServerNotFound(() ⇒ {
       val params = Map("name" -> dst, "mode" -> "copy", "from" -> src)
-      Http(dispatch.url(baseUrl + "/createItem") << params)()
+      val request = Http(dispatch.url(baseUrl + "/createItem") << params)
+      request()
       // Seems to be a bug in Jenkins 1.525 when you copy a job it doesn't show the build button in the UI
       // This enables the build button
       disableJob(dst)
@@ -76,21 +88,25 @@ class Jenkins(baseUrl: String) {
     })
 
   def disableJob(job: String) = {
-    logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/disable".format(job)).POST)(), job)
+    val request = Http(dispatch.url(baseUrl + "/job/%s/disable".format(job)).POST)
+    logJobNotFound(() ⇒ request(), job)
   }
 
   def enableJob(job: String) = {
-    logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/enable".format(job)).POST)(), job)
+    val request = Http(dispatch.url(baseUrl + "/job/%s/enable".format(job)).POST)
+    logJobNotFound(() ⇒ request(), job)
   }
 
   def buildJob(job: String) = {
     println("Building Job " + job)
-    logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/build".format(job)).POST)(), job)
+    val request = Http(dispatch.url(baseUrl + "/job/%s/build".format(job)).POST)
+    logJobNotFound(() ⇒ request(), job)
   }
 
   def deleteJob(job: String): Unit = {
     println("Deleting Job " + job)
-    logJobNotFound(() ⇒ Http(dispatch.url(baseUrl + "/job/%s/doDelete".format(job)).POST)(), job)
+    val request = Http(dispatch.url(baseUrl + "/job/%s/doDelete".format(job)).POST)
+    logJobNotFound(() ⇒ request(), job)
   }
 
   def deleteJobRegex(regex: String): Unit = {
@@ -107,7 +123,8 @@ class Jenkins(baseUrl: String) {
 
   def getAllJobs() = {
     logNotFound(() ⇒ {
-      val config = Http(dispatch.url(baseUrl + "/api/xml") OK as.xml.Elem)()
+      val request = Http(dispatch.url(baseUrl + "/api/xml") OK as.xml.Elem)
+      val config = request()
       val nodes = config \\ "job" \\ "name"
       nodes.map(_.text)
     }, "Could not find jobs on server %s".format(baseUrl))
@@ -115,7 +132,8 @@ class Jenkins(baseUrl: String) {
 
   def getJobsInView(view: String) = {
     logNotFound(() ⇒ {
-      val config = Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)()
+      val request = Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)
+      val config = request()
       val nodes = config \\ "jobNames" \\ "string"
       nodes.map(_.text)
     }, "Could not find view %s on server %s".format(view, baseUrl))
@@ -126,7 +144,7 @@ class Jenkins(baseUrl: String) {
       f()
     } catch {
       case e if (e.getMessage.contains("404")) ⇒ { println(message + "\n"); throw e }
-      case e                                   ⇒ throw e
+      case e: Throwable                        ⇒ throw e
     }
   }
 
@@ -151,7 +169,9 @@ class Jenkins(baseUrl: String) {
     deleteView(view)
   }
 
-  def getJobInfo(job: String): Elem =
-    Http(url(baseUrl + "/job/%s/api/xml".format(job)) OK as.xml.Elem)()
+  def getJobInfo(job: String): Elem = {
+    val request = Http(url(baseUrl + "/job/%s/api/xml".format(job)) OK as.xml.Elem)
+    request()
+  }
 }
 
