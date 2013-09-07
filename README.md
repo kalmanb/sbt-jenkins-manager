@@ -35,18 +35,18 @@ Add your jenkins url to your project settings:
 Usage:
  sbt
 
-    jenkinsCopyJob <scr> <dest> create a copy of an existing job
-    jenkinsBuildJob <job-name> start a build for a Job
-    jenkinsDeleteJob <job-name> delete Job from Jenkins
-    jenkinsDeleteJobRegex <job-regex> delete Job from Jenkins
-    jenkinsChangeJobBranch <job-name> <branch> change a jobs git branch setting
-    jenkinsChangeViewBranch <view-name> <branch> change all jobs in the view to a new git branch setting
-    jenkinsChangeJobsBranch <regex> <branch> change all jobs that match a regex to a new git branch setting
-    jenkinsCreateView <name> create a new view
-    jenkinsCopyView <src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>
-    jenkinsAddJobToView <job-name> <view-name> create a new view
-    jenkinsDeleteView <name> deletes the view, does NOT delete the jobs in the view
-    jenkinsDeleteViewAndJobs <name> deletes the view and deletes all the jobs in the view
-    jenkinsBuild-allJobsInView <name> queues the build of all jobs
-    jenkinsSetWipeoutWorkspaceView <view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view
-    jenkinsChangeViewThrottleCats <view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view
+    jenCopyJob <scr> <dest> create a copy of an existing job
+    jenBuildJob <job-name> start a build for a Job
+    jenDeleteJob <job-name> delete Job from Jenkins
+    jenDeleteJobRegex <job-regex> delete Job from Jenkins
+    jenChangeJobBranch <job-name> <branch> change a jobs git branch setting
+    jenChangeViewBranch <view-name> <branch> change all jobs in the view to a new git branch setting
+    jenChangeJobsBranch <regex> <branch> change all jobs that match a regex to a new git branch setting
+    jenCreateView <name> create a new view
+    jenCopyView <src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>
+    jenAddJobToView <job-name> <view-name> create a new view
+    jenDeleteView <name> deletes the view, does NOT delete the jobs in the view
+    jenDeleteViewAndJobs <name> deletes the view and deletes all the jobs in the view
+    jenBuild-allJobsInView <name> queues the build of all jobs
+    jenSetWipeoutWorkspaceView <view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view
+    jenChangeViewThrottleCats <view> <cat1,cat2,cat3> [ignore,projects] -changes the setting for wipeout workspace in the specified view

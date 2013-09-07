@@ -13,28 +13,30 @@ trait JenkinsPluginTrait extends Plugin {
   val jenkinsBaseUrl = SettingKey[String]("jenkinsBaseUrl", "The base URL for your Jenkins Server, eg http://jenkins.foo.com")
 
   // Tasks
-  val jenCopyJob = InputKey[Unit]("jenkinsCopyJob",
+  val jenCopyJob = InputKey[Unit]("jenCopyJob",
     "<scr> <dest> create a copy of an existing job")
-  val jenBuildJob = InputKey[Unit]("jenkinsBuildJob",
+  val jenBuildJob = InputKey[Unit]("jenBuildJob",
     "<jobName> start a build for a Job")
-  val jenDeleteJob = InputKey[Unit]("jenkinsDeleteJob",
+  val jenDeleteJob = InputKey[Unit]("jenDeleteJob",
     "<jobName> delete Job from Jenkins")
-  val jenDeleteJobRegex = InputKey[Unit]("jenkinsDeleteJobRegex",
+  val jenDeleteJobRegex = InputKey[Unit]("jenDeleteJobRegex",
     "<jobRegex> delete Job from Jenkins")
-  val jenCreateView = InputKey[Unit]("jenkinsCreateView",
+  val jenCreateView = InputKey[Unit]("jenCreateView",
     "<name> create a new view")
-  val jenCopyView = InputKey[Unit]("jenkinsCopyView",
+  val jenCopyView = InputKey[Unit]("jenCopyView",
     "<src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>")
-  val jenAddJobToView = InputKey[Unit]("jenkinsAddJobToView",
+  val jenAddJobToView = InputKey[Unit]("jenAddJobToView",
     "<jobName> <viewName> create a new view")
-  val jenDeleteView = InputKey[Unit]("jenkinsDeleteView",
+  val jenDeleteView = InputKey[Unit]("jenDeleteView",
     "<name> deletes the view, does NOT delete the jobs in the view")
-  val jenDeleteViewAndJobs = InputKey[Unit]("jenkinsDeleteViewAndJobs",
+  val jenDeleteViewAndJobs = InputKey[Unit]("jenDeleteViewAndJobs",
     "<name> deletes the view and deletes all the jobs in the view")
-  val jenBuildAllJobsInView = InputKey[Unit]("jenkinsBuildAllJobsInView",
+  val jenBuildAllJobsInView = InputKey[Unit]("jenBuildAllJobsInView",
     "<name> queues the build of all jobs")
-  val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenkinsSetWipeoutWorkspaceView",
+  val jenSetWipeoutWorkspaceView = InputKey[Unit]("jenSetWipeoutWorkspaceView",
     "<view> <true|false> [ignore,projects] - changes the setting for wipeout workspace in the specified view")
+  val jenChangeViewSbtActions = InputKey[Unit]("jenChangeViewSbtActions",
+    "<view> -<job-exclusion> -<job-exclusion> <action> <action> ... - changes the the actions based on the job eg ;job1/clean;job1/publish. A param starting with '-' will be a job that is not changed")
 
   lazy val jenkinsSettings = Seq(
     jenCopyJob <<= jenkinsTask(2, (baseUrl, args) ⇒
@@ -58,7 +60,10 @@ trait JenkinsPluginTrait extends Plugin {
     jenBuildAllJobsInView <<= jenkinsTask(1, (baseUrl, args) ⇒
       Jenkins(baseUrl).buildAllJobsInView(args.head)),
     jenSetWipeoutWorkspaceView <<= jenkinsTask(2, (baseUrl, args) ⇒
-      Jenkins(baseUrl).setWipeOutWorkspaceForView(args)))
+      Jenkins(baseUrl).setWipeOutWorkspaceForView(args)),
+    jenChangeViewSbtActions <<= jenkinsTask(2, (baseUrl, args) ⇒
+      Jenkins(baseUrl).updateViewSbtActions(args.head, args.tail)))
+ 
 
   def validateArgs(args: Seq[_], size: Int) {
     if (args.size < size) throw new IllegalArgumentException("expected %s args, got %s".format(size, args.size))

@@ -2,7 +2,7 @@ organization := "com.kalmanb"
 
 name := "sbt-jenkins-manager"
 
-version := "0.5.0"
+version := "0.6.0"
 
 sbtPlugin := true
 

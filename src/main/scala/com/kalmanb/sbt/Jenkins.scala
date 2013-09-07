@@ -121,6 +121,39 @@ class Jenkins(baseUrl: String) {
     getJobsInView(view).foreach(buildJob)
   }
 
+  def updateViewSbtActions(view: String, sbtActions: Seq[String]): Unit = {
+    val jobExclusions = sbtActions.filter(_.startsWith("-")).map(_.drop(1))
+    val actions = sbtActions.filter(!_.startsWith("-"))
+    getJobsInView(view).foreach { job ⇒
+      val module = job.split("_").last
+      if (!jobExclusions.contains(module)) {
+        updateJob(job, transformSbtActions(module, actions))
+      }
+    }
+  }
+
+  def transformSbtActions(job: String, sbtActions: Seq[String])(config: Seq[scala.xml.Node]): Seq[scala.xml.Node] = {
+    val builders = config \\ "builders" \\ "org.jvnet.hudson.plugins.SbtPluginBuilder"
+    val actions = (sbtActions map (action ⇒ s";$job/$action")).mkString
+
+    val modified = new RewriteRule {
+      override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
+        case <actions>{ a }</actions> ⇒ <actions>{ actions }</actions>
+        case elem: Elem               ⇒ elem copy (child = elem.child flatMap (this transform))
+        case other                    ⇒ other
+      }
+    } transform builders
+
+    val updated = new RewriteRule {
+      override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
+        case Elem(prefix, "org.jvnet.hudson.plugins.SbtPluginBuilder", attribs, scope, child @ _*) ⇒ modified
+        case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
+        case other ⇒ other
+      }
+    } transform config
+    updated
+  }
+
   def getAllJobs() = {
     logNotFound(() ⇒ {
       val request = Http(dispatch.url(baseUrl + "/api/xml") OK as.xml.Elem)

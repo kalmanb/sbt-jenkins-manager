@@ -3,11 +3,12 @@ package com.kalmanb.sbt
 import java.io.File
 
 import org.scalatest.FunSpec
+import org.scalatest.Matchers
 import sbt.Project
 
-class JenkinsPluginIntTest extends FunSpec {
+class JenkinsPluginIntTest extends FunSpec with Matchers {
   import Common._
-       
+
   describe("Jenkins API") {
     it("should be able to create and remove a view") {
       val view = "testView"
@@ -42,6 +43,12 @@ class JenkinsPluginIntTest extends FunSpec {
       assert(doesViewExist(view) === false)
       assert(doesJobExist(job1) === false)
       assert(doesJobExist(job2) === false)
+    }
+
+    it("should add sbt actions to jenkins config") {
+      val result = TestServer.transformSbtActions("job1", Seq("clean", "test", "publish-local"))(gitProject)
+      val newActions = result \\ "builders" \\ "org.jvnet.hudson.plugins.SbtPluginBuilder" \\ "actions"
+      newActions.toString should be("<actions>;job1/clean;job1/test;job1/publish-local</actions>")
     }
 
     //        def createJob = http://localhost:8080/createItem

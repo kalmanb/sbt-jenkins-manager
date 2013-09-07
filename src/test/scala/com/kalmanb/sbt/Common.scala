@@ -51,6 +51,14 @@ object Common {
       <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
       <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
       <triggers class="vector"/>
+      <builders>
+        <org.jvnet.hudson.plugins.SbtPluginBuilder plugin="sbt@1.4">
+          <name>current</name>
+          <sbtFlags>-Dsbt.log.noformat=true</sbtFlags>
+          <actions>;proj/test;proj/publish-local</actions>
+          <subdirPath/>
+        </org.jvnet.hudson.plugins.SbtPluginBuilder>
+      </builders>
       <concurrentBuild>false</concurrentBuild>
       <builders/>
       <publishers/>
