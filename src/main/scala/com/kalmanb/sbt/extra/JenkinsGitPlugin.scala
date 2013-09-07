@@ -12,11 +12,11 @@ object JenkinsGitPlugin {
   import com.kalmanb.sbt.JenkinsPlugin._
   import Git._
 
-  val jenChangeJobBranch = InputKey[Unit]("jenkinsChangeJobBranch",
+  val jenChangeJobBranch = InputKey[Unit]("jenChangeJobBranch",
     "<jobName> <branch> change a jobs git branch setting")
-  val jenChangeViewBranch = InputKey[Unit]("jenkinsChangeViewBranch",
+  val jenChangeViewBranch = InputKey[Unit]("jenChangeViewBranch",
     "<viewName> <branch> change all jobs in the view to a new git branch setting")
-  val jenChangeJobsBranch = InputKey[Unit]("jenkinsChangeJobsBranch",
+  val jenChangeJobsBranch = InputKey[Unit]("jenChangeJobsBranch",
     "<regex> <branch> change all jobs that match a regex to a new git branch setting")
 
   lazy val jenkinsGitSettings = Seq(
