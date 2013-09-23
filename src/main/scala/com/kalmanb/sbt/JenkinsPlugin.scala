@@ -1,6 +1,5 @@
 package com.kalmanb.sbt
 
-
 import sbt.Keys._
 import sbt._
 import sbt.complete.DefaultParsers._
