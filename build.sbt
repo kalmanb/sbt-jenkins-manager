@@ -10,7 +10,7 @@ publishMavenStyle := false
 
 publishArtifact in Test := false
 
-publishTo := Some(Resolver.url("repo", new URL("http://"))(Resolver.ivyStylePatterns))
+//publishTo := Some(Resolver.url("repo", new URL("http://"))(Resolver.ivyStylePatterns))
 
 // sbt 13
 //sbtVersion in Global := "0.13.0-RC5"
