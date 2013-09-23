@@ -25,6 +25,8 @@ trait JenkinsPluginTrait extends Plugin {
     "<name> create a new view")
   val jenCopyView = InputKey[Unit]("jenkinsCopyView",
     "<src> <dst> [prefix] creates a new view with name <dst> and duplicates all jobs in <src>. Prefix is for the new jobs, it's optional and defaults to <dst>")
+  val jenCopyViewToOtherServer = InputKey[Unit]("jenCopyViewToOtherServer",
+    "<srcUrl> <dstUrl> <view> creates a new view on the dst server and duplicates all jobs from the source.")
   val jenAddJobToView = InputKey[Unit]("jenkinsAddJobToView",
     "<jobName> <viewName> create a new view")
   val jenDeleteView = InputKey[Unit]("jenkinsDeleteView",
@@ -49,6 +51,8 @@ trait JenkinsPluginTrait extends Plugin {
       Jenkins(baseUrl).createView(args.head)),
     jenCopyView <<= jenkinsTask(2, (baseUrl, args) ⇒
       Jenkins(baseUrl).copyView(args.head, args(1))),
+    jenCopyViewToOtherServer <<= jenkinsTask(3, (baseUrl, args) ⇒
+      Jenkins(baseUrl).copyViewToOtherServer(args.head, args(1), args(2))),
     jenAddJobToView <<= jenkinsTask(2, (baseUrl, args) ⇒
       Jenkins(baseUrl).addJobToView(args.head, args(1))),
     jenDeleteView <<= jenkinsTask(1, (baseUrl, args) ⇒
