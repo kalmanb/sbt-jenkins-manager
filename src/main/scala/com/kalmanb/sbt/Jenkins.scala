@@ -10,11 +10,11 @@ object Jenkins {
 }
 class Jenkins(baseUrl: String) {
 
-  def createView(view: String): Unit =
+  def createView(view: String, hostUrl: String = baseUrl): Unit =
     logServerNotFound(() ⇒ {
       val params = Map("name" -> view, "mode" -> "hudson.model.ListView",
         "json" -> "{\"name\": \"%s\", \"mode\": \"hudson.model.ListView\"}".format(view))
-      val request = Http(dispatch.url(baseUrl + "/createView") << params)
+      val request = Http(dispatch.url(hostUrl + "/createView") << params)
       request()
     })
 
@@ -28,13 +28,13 @@ class Jenkins(baseUrl: String) {
     logViewNotFound(() ⇒ request(), view)
   }
 
-  def addJobToView(job: String, view: String): Unit = {
-    val request = Http(dispatch.url(baseUrl + "/view/%s/addJobToView".format(view)) << Map("name" -> job) OK as.String)
+  def addJobToView(job: String, view: String,hostUrl: String = baseUrl): Unit = {
+    val request = Http(dispatch.url(hostUrl + "/view/%s/addJobToView".format(view)) << Map("name" -> job) OK as.String)
     logViewNotFound(() ⇒ request(), view)
   }
 
-  def getJobConfig(job: String) = {
-    val request = Http(dispatch.url(baseUrl + "/job/%s/config.xml".format(job)) OK as.xml.Elem)
+  def getJobConfig(job: String, hostUrl:String = baseUrl) = {
+    val request = Http(dispatch.url(hostUrl + "/job/%s/config.xml".format(job)) OK as.xml.Elem)
     logJobNotFound(() ⇒ request(), job)
   }
 
@@ -70,8 +70,8 @@ class Jenkins(baseUrl: String) {
     println("Updated " + job + " with wipeOutWorkspace to " + wipeOutWorkspace)
   }
 
-  def createJob(job: String, config: Seq[scala.xml.Node]): Unit = {
-    val request = Http(dispatch.url(baseUrl + "/createItem".format(job)).POST
+  def createJob(job: String, config: Seq[scala.xml.Node], hostUrl: String = baseUrl): Unit = {
+    val request = Http(dispatch.url(hostUrl + "/createItem".format(job)).POST
       .setBody(config.mkString).setHeader("Content-Type", "text/xml") <<? Map("name" -> job) OK as.String)
     logServerNotFound(() ⇒ request())
   }
@@ -163,7 +163,7 @@ class Jenkins(baseUrl: String) {
     }, "Could not find jobs on server %s".format(baseUrl))
   }
 
-  def getJobsInView(view: String) = {
+  def getJobsInView(view: String, baseUrl: String = baseUrl) = {
     logNotFound(() ⇒ {
       val request = Http(dispatch.url(baseUrl + "/view/%s/config.xml".format(view)) OK as.xml.Elem)
       val config = request()
@@ -195,6 +195,14 @@ class Jenkins(baseUrl: String) {
     println(originalJobs)
     originalJobs.foreach(job ⇒ copyJob(job, prefix + job))
     originalJobs.foreach(job ⇒ addJobToView(prefix + job, dst))
+  }
+
+  def copyViewToOtherServer(srcUrl: String, dstUrl: String, view: String) {
+    createView(view, dstUrl)
+    val originalJobs = getJobsInView(view, srcUrl)
+    println(originalJobs)
+    originalJobs.foreach(job ⇒ createJob(job,getJobConfig(job, srcUrl) , dstUrl))
+    originalJobs.foreach(job ⇒ addJobToView(job, view, dstUrl))
   }
 
   def deleteViewAndJobs(view: String) {
