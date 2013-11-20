@@ -59,14 +59,32 @@ class Jenkins(baseUrl: String) {
 
   def setWipeOutWorkspaceForJob(job: String, wipeOutWorkspace: Boolean): Unit = {
     val config = getJobConfig(job)
-    val updated = new RewriteRule {
-      override def transform(n: scala.xml.Node): Seq[scala.xml.Node] = n match {
-        case Elem(prefix, "wipeOutWorkspace", attribs, scope, child @ _*) ⇒ <wipeOutWorkspace>{ wipeOutWorkspace }</wipeOutWorkspace>
+    def wipeWorkspaceNodeMatch(flag: Boolean): PartialFunction[scala.xml.Node, Boolean] = {
+      case Elem(_, "hudson.plugins.git.extensions.impl.WipeWorkspace", _, _, children @ _*) ⇒ flag
+      case _ ⇒ !flag
+    }
+    def extensionsRewriter(fun: Elem ⇒ scala.xml.Node) = new RewriteRule {
+      override def transform(node: scala.xml.Node): Seq[scala.xml.Node] = node match {
+        case Elem(_, "extensions", _, _, children @ _*) ⇒ fun(node.asInstanceOf[Elem])
         case elem: Elem ⇒ elem copy (child = elem.child flatMap (this transform))
         case other ⇒ other
       }
-    } transform config
-    updateJobConfig(job, updated)
+    }
+
+    val updatedConfig =
+      if (wipeOutWorkspace) {
+        extensionsRewriter { elem ⇒
+          if (elem.child exists wipeWorkspaceNodeMatch(true)) elem
+          else elem copy (child = elem.child ++ <hudson.plugins.git.extensions.impl.WipeWorkspace />)
+        } transform config
+      }
+      else {
+        extensionsRewriter { elem ⇒
+          elem.asInstanceOf[Elem] copy (child = elem.child.filter(wipeWorkspaceNodeMatch(false)))
+        } transform config
+      }
+
+    updateJobConfig(job, updatedConfig)
     println("Updated " + job + " with wipeOutWorkspace to " + wipeOutWorkspace)
   }
 
@@ -215,4 +233,3 @@ class Jenkins(baseUrl: String) {
     request()
   }
 }
-
