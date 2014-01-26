@@ -1,8 +1,8 @@
 organization := "com.kalmanb"
-            
+
 name := "sbt-jenkins-manager"
 
-version := "0.4.1"
+version := "0.4.2"
 
 sbtPlugin := true
 
@@ -22,7 +22,7 @@ scalaVersion in Global := "2.9.2"
 
 libraryDependencies ++= Seq(
   //"net.databinder.dispatch" % "dispatch-core_2.9.3" % "0.11.0",
-  "org.scalaz"  %% "scalaz-core"  % "6.0.4", 
+  "org.scalaz"  %% "scalaz-core"  % "6.0.4",
   "net.databinder.dispatch" %% "dispatch-core" % "0.9.5",
   "org.slf4j" % "slf4j-simple" % "1.7.5",
   "org.scalatest" %% "scalatest" % "2.0.M6-SNAP3" % "test",
@@ -31,5 +31,3 @@ libraryDependencies ++= Seq(
 // sbt 13 - dependencies
 // "org.scalatest" %% "scalatest" % "2.0.RC1-SNAP4" % "test",
 // "net.databinder.dispatch" %% "dispatch-core" % "0.11.0"
-
-

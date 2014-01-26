@@ -7,7 +7,7 @@ import sbt.Project
 
 class JenkinsPluginIntTest extends FunSpec {
   import Common._
-       
+
   describe("Jenkins API") {
     it("should be able to create and remove a view") {
       val view = "testView"
@@ -50,6 +50,10 @@ class JenkinsPluginIntTest extends FunSpec {
   //      // Working
   //      println(TestServer.getJobsInView("view"))
   //    }
+  // it("should set the git plugin to wipe workspaces") {
+  //   // Working
+  //   println(TestServer.setWipeOutWorkspaceForView(Seq("fg", "true")))
+  // }
   //
   //    it("should copy jobs") {
   //      // Working
@@ -91,9 +95,13 @@ class JenkinsPluginIntTest extends FunSpec {
   //      TestServer.deleteView("view")
   //    }
   //
-  //    it("should duplicate a view with a copy of all its jobs") {
+  // it("should duplicate a view with a copy of all its jobs") {
   //      // Working
   //      TestServer.copyView("src", "dst")
+  // }
+  // it("should copy a view from one server to another") {
+  //      // Working
+  //      TestServer.copyViewToOtherServer("http://jenkins1", "http://jenkins2", "viewName")
   //    }
   //
   //    it("should delete a view and delete all jobs included in that view") {
